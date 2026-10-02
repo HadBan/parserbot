@@ -1,11 +1,21 @@
 import os
 import re
+import sys
 import json
 import subprocess
 import asyncio
 from datetime import datetime, timedelta, timezone
+
 import aiohttp
 from bs4 import BeautifulSoup
+
+# === Логи в файл (Bothost скрывает stdout) ===
+try:
+    _log_fh = open("/app/data/parser_log.txt", "a", buffering=1, encoding="utf-8")
+    sys.stdout = _log_fh
+    sys.stderr = _log_fh
+except Exception:
+    pass
 
 GROUP_URL = "http://87.255.240.138/rasp/cg23.htm"
 OUT_FILE = "schedule.json"
@@ -136,7 +146,9 @@ async def main():
     print(f"✅ Parser cron запущен. Интервал: {INTERVAL_SEC} сек")
     print(f"REPO_DIR: {REPO_DIR}")
     print(f"GITHUB_REPO: {GITHUB_REPO}")
+    print(f"GITHUB_TOKEN длина: {len(GITHUB_TOKEN)}")
 
+    # Клонируем репо, если его нет
     if GITHUB_REPO and GITHUB_TOKEN and not os.path.exists(os.path.join(REPO_DIR, ".git")):
         try:
             os.makedirs(REPO_DIR, exist_ok=True)
@@ -146,6 +158,11 @@ async def main():
             print(f"[SCHED] ✅ Склонировано")
         except Exception as e:
             print(f"[SCHED] ❌ Ошибка клонирования: {e}")
+    else:
+        if os.path.exists(os.path.join(REPO_DIR, ".git")):
+            print("[SCHED] Репо уже склонировано")
+        else:
+            print("[SCHED] Нет GITHUB_REPO или GITHUB_TOKEN")
 
     while True:
         try:
